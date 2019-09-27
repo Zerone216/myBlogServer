@@ -1,0 +1,18 @@
+version: "3.4"
+services: 
+  blog_server: 
+    image: blog_build_docker
+    ports:
+      - "8080"
+    volumes:
+      - .:/opt/my_blog
+  nginx:
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    links:
+      - blog_server
+    depends_on:
+      - blog_server

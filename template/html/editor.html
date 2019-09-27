@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="https://www.layuicdn.com/layui/css/layui.css">
+
+    <style>
+        #editor {
+            border: 1px dashed #333333;
+            width: 100%;
+            height: 100%;
+        }
+
+        html,
+        body {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body style="height: 100%; margin: 0; padding: 0;">
+<div id="app" v-cloak style="height: 100%; margin: 0;">
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <label class="layui-form-label">标题</label>
+            <div class="layui-input-block layui-input-inline">
+                <input v-model="title" type="text" id="title" class="layui-input">
+            </div>
+        </div>
+
+        <label class="layui-form-label">分类</label>
+        <div class="layui-input-block  layui-input-inline">
+            <select @change="big_group_change();" v-model="big_group_index" id="big_group" lay-ignore>
+                <option v-for="(bt, index) in group_data" :value="index" v-if="bt.sub_group.length !== 0">
+                    {{ bt.group_name }}
+                </option>
+            </select>
+        </div>
+        <div class="layui-input-block layui-input-inline">
+            <select v-model="sub_group" lay-ignore v-if="group_data.length !== 0">
+                <option v-for="st in group_data[big_group_index].sub_group" :value="st.id">
+                    {{st.group_name}}
+                </option>
+            </select>
+        </div>
+        <div class=layui-form-item>
+
+
+            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" src="/img/browse.png" width="32px"
+                 title="浏览文件" id="choose_file">
+            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" src="/img/upload.png" id="upload"
+                 title="上传">
+            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" src="/img/draft.png" width="32px"
+                 @click="save_draft();" title="保存为草稿">
+            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" src="/img/publish.png"
+                 @click="publish();" width="32px" title="发布">
+            <input lay-ignore type="checkbox" v-model="auto_save_flag" @change="auto_save_draft();">自动保存</button>
+        </div>
+    </form>
+    <div class="layui-row" style="height:80%; margin:0;">
+        <div class="layui-col-md4" style="height: 100%;">
+            <pre id="editor"></pre>
+        </div>
+        <div class="layui-col-md5" style="overflow: hidden; height: 100%;">
+            <iframe id="html_content" src="/admin/html/show_blog.html" style="width:100%; height: 100%;"></iframe>
+
+        </div>
+        <div class="layui-col-md3" style="height:100%; overflow:scroll;">
+            <div>
+                <table class=layui-table>
+                    <colgroup>
+                        <col>
+                        <col>
+                    </colgroup>
+                    <thead>
+                    <td>文件路径</td>
+                    <td>操作</td>
+                    </thead>
+                    <tbody>
+                    <tr v-for="item in files">
+                        <td style="word-break: break-all; word-wrap:break-word;">
+                            <a :href="'/file/'+item" target="_blank" :download="item">{{item}}</a>
+                        </td>
+                        <td>
+                            <a class="copy_link" :data="item">
+                                <img style="margin: 10px; border: thin black solid; border-radius: 3px;" width="20px"
+                                     src="/img/copy.png">
+                            </a>
+                            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" width=20px
+                                 src="/img/delete.png" @click="delete_file(item)">
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="https://www.layuicdn.com/layui/layui.js"></script>
+<script src="https://cdn.bootcss.com/ace/1.4.5/ace.js"></script>
+<script src="https://cdn.bootcss.com/ace/1.4.5/ext-language_tools.js"></script>
+<script src="https://cdn.bootcss.com/ace/1.4.5/ext-emmet.js"></script>
+<script src="https://cdn.bootcss.com/ace/1.4.5/ext-elastic_tabstops_lite.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.6.10/vue.min.js"></script>
+
+<script src="https://cdn.bootcss.com/showdown/1.9.0/showdown.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
+<script src="/js/tools.js"></script>
+
+<script>
+    let on_set_draft_data = null;
+    let app = new Vue({
+        el: "#app",
+        data: << data >>,
+        methods
+    :
+    {
+        big_group_change: function () {
+            let flag = false;
+            for (let k in this.group_data[this.big_group_index].sub_group) {
+                if (this.sub_group === this.group_data[this.big_group_index].sub_group[k].id) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                this.sub_group = this.group_data[this.big_group_index].sub_group[0].id;
+            }
+        }
+    ,
+        auto_save_draft: function () {
+            if (this.auto_save_flag) {
+                this.timer = window.setInterval(this.auto_save, 10 * 1000);
+            } else {
+                window.clearInterval(this.timer);
+            }
+        }
+    ,
+        publish: function () {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let layer = layui.layer;
+                let $ = layui.jquery;
+                if (this_.title === "") {
+                    layer.msg("请填写标题", {
+                        icon: 0
+                    });
+                    return false;
+                }
+                if (this_.sub_group == -1) {
+                    layer.msg("请选择分类", {
+                        icon: 0
+                    });
+                    return false;
+                }
+                $.ajax({
+                    url: "/admin/api/blog",
+                    method: "POST",
+                    data: {
+                        draft_id: this_.draft_id,
+                        blog_id: this_.blog_id,
+                        title: this_.title,
+                        content: this_.editor.getValue(),
+                        sub_group: this_.sub_group
+                    },
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            window.clearInterval(this_.timer);
+                            layer.alert("发布成功", () => {
+                                window.location.href = "/admin/html/blog_data.html";
+                            });
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+        on_set_draft_data: function (index) {
+            let this_ = this;
+            layui.use(["layer"], function () {
+                let layer = layui.layer;
+                this_.title = draft_data[index].title;
+                this_.editor.setValue(draft_data[index].content);
+                this_.draft_id = draft_data[index].id;
+                layer.closeAll();
+            });
+        }
+    ,
+
+        save: function (succ_callback, err_callback) {
+            let this_ = this;
+            layui.use(["jquery"], function () {
+                let $ = layui.jquery;
+                let content = this_.editor.getValue();
+                let title = this_.title;
+                if (this_.draft_id === -1 && title.length === 0) {
+                    return;
+                }
+                $.ajax({
+                    url: "/admin/api/draft",
+                    method: "PUT",
+                    data: {
+                        id: this_.draft_id,
+                        title: title,
+                        content: content
+                    },
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            err_callback(res.msg);
+                        } else {
+                            this_.draft_id = res.data;
+                            succ_callback();
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+        save_draft: function () {
+            let this_ = this;
+            layui.use(["layer"], function () {
+                this_.save(() => {
+                    layer.msg("保存草稿成功", {
+                        icon: 1
+                    });
+                }, (msg) => {
+                    layer.msg(msg, {
+                        icon: 0
+                    });
+                });
+            });
+        }
+    ,
+
+        auto_save: function () {
+            let this_ = this;
+            layui.use(["layer"], function () {
+                this_.save(() => {
+                }, (msg) => {
+                    layer.msg(msg, {
+                        icon: 0
+                    });
+                });
+            });
+        }
+    ,
+
+        blog_content: function () {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let layer = layui.layer;
+                let $ = layui.jquery;
+                $.ajax({
+                    url: "/admin/api/blog_content",
+                    method: "GET",
+                    data: {
+                        id: this_.blog_id
+                    },
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            this_.editor.setValue(res.data.content);
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+        draft: function () {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                $.ajax({
+                    url: "/admin/api/draft",
+                    method: "GET",
+                    data: {
+                        id: this_.draft_id
+                    },
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            this_.title = res.data.title;
+                            this_.editor.setValue(res.data.content);
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+        draft_list: function () {
+            let this_ = this;
+            layui.use(["jquery"], function () {
+                let $ = layui.jquery;
+
+
+                let html_encode = function (html) {
+                    return $("<div>").text(html).html();
+                };
+
+                $.ajax({
+                    url: "/admin/api/draft_list",
+                    method: "GET",
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            if (res.data.length !== 0) {
+                                layer.confirm("检测到有草稿，是否继续编辑？", function () {
+                                    draft_data = res.data;
+                                    let layer_content = "<table class='layui-table'><colgroup><col><col><col></colgroup><thead><td>序号</td><td>标题</td><td>操作</td></thead>";
+                                    for (let k in res.data) {
+                                        layer_content += "<tr><td>" + k + "</td><td>" + html_encode(res.data[k].title) + "</td><td><button class='layui-btn' onclick='on_set_draft_data(" + k + ");' >编辑</button></td></tr>";
+                                    }
+                                    layer.open({
+                                        type: 1,
+                                        skin: 'layui-layer-lan',
+                                        closeBtn: 0,
+                                        anim: 2,
+                                        shadeClose: true,
+                                        title: "请选择草稿进行编辑",
+                                        area: ['400px', '300px'],
+                                        content: layer_content,
+                                        cancel: function () {
+                                            layer.closeAll();
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+
+        file_list: function () {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                $.ajax({
+                    url: "/admin/api/uploaded_file_list",
+                    method: "GET",
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            this_.files = res.data;
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+        delete_file: function (url) {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                layer.confirm("确认删除文件" + url + "吗？", function () {
+                    $.ajax({
+                        url: "/admin/api/file",
+                        method: "delete",
+                        data: {
+                            path: url
+                        },
+                        success: function (res) {
+                            if (res.code !== 0) {
+                                layer.msg(res.msg, {
+                                    icon: 0
+                                });
+                            } else {
+                                layer.msg("删除成功", {
+                                    icon: 1
+                                });
+                                this_.file_list();
+                            }
+                        }
+                    });
+                });
+            });
+        }
+    ,
+
+
+        init_data: function () {
+            let this_ = this;
+            layui.use(["form", "element", "layer", "jquery", "upload"], function () {
+                let form = layui.form;
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                let element = layui.element;
+                let upload = layui.upload;
+
+
+                let draft_data = null;
+                let blog_id = -1;
+                let group_data = [];
+
+                this_.converter = markdown_converter();
+                this_.editor = markdown_editor("editor");
+                this_.editor.session.on("change", function (evt) {
+                    $(document.getElementById('html_content').contentWindow.document.body).html(this_.converter.makeHtml(this_.editor.getValue()));
+                });
+
+                window.setInterval(function () {
+                    let this_ = this;
+                    layui.use(["jquery"], function () {
+                        $.ajax({
+                            url: "/admin/api/heart_beat",
+                            method: "GET"
+                        });
+                    });
+                }, 60 * 1000);
+
+
+                this_.file_list();
+
+                let clip = new ClipboardJS(".copy_link", {
+                    text: function (trigger) {
+                        layui.use(["layer"], function () {
+                            layer.msg("链接已复制", {
+                                icon: 1
+                            });
+                        });
+                        return encodeURI("/file/" + trigger.getAttribute("data"));
+                    }
+                });
+
+                upload.render({
+                    elem: "#choose_file",
+                    url: "/admin/api/upload_file",
+                    method: "POST",
+                    accept: "file",
+                    auto: false,
+                    bindAction: "#upload",
+                    multiple: true,
+                    drag: true,
+                    before: function (obj) {
+                        obj.preview(function(index, file, result){
+                            layer.load();
+                        });
+                    },
+                    done: function (res, index, upload) {
+                        layer.closeAll("loading");
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            layer.msg("上传成功", {
+                                icon: 1
+                            });
+                            this_.file_list();
+                        }
+                    },
+                    error: function (index, upload) {
+                        layer.closeAll("loading");
+                        layer.msg("上传失败", {
+                            icon: 0
+                        });
+                        this_.file_list();
+                    }
+                });
+
+
+                if (this_.type === 0) {
+                    this_.draft_list();
+                } else if (this_.type === 1) {
+                    this_.draft();
+                } else if (this_.type === 2) {
+                    this_.blog_content();
+                }
+
+            });
+        }
+    }
+    ,
+    mounted: function () {
+        let this_ = this;
+        on_set_draft_data = this.on_set_draft_data;
+
+        let empty_flag = true;
+        for (let k in this.group_data) {
+
+            if (this.group_data[k].sub_group.length !== 0) {
+                empty_flag = false;
+                break;
+            }
+        }
+        if (empty_flag) {
+            layui.use(["layer"], function () {
+                layer.alert("请先添加分组！", () => {
+                    window.location.href = "/admin/html/blog_group.html";
+                });
+            });
+        } else {
+            this.init_data();
+            this.big_group_change();
+        }
+    }
+    })
+    ;
+</script>
+</body>
+
+</html>

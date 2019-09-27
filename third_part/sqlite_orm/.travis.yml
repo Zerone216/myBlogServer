@@ -1,0 +1,114 @@
+# Defaults
+os: linux
+dist: xenial
+
+matrix:
+  include:
+    - name: "GCC-9"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-9
+            - ninja-build
+      env:
+        - CC: gcc-9
+        - CXX: g++-9
+
+    - name: "GCC-7"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+            - ninja-build
+      env:
+        - CC: gcc-7
+        - CXX: g++-7
+
+    - name: "LLVM/Clang (Travis default)"
+      language: cpp
+      compiler: clang
+      addons:
+        apt:
+          packages:
+            - ninja-build
+      env:
+        - SQLITE_ORM_OMITS_CODECVT: ON
+
+    - name: AppleClang-10.0.1
+      os: osx
+      osx_image: xcode10.2
+      language: cpp
+      env:
+        - SQLITE_ORM_OMITS_CODECVT: ON
+      addons:
+        homebrew:
+          packages:
+            - catch2
+            - ninja
+          update: true
+
+    - name: "LLVM/Clang (latest)"
+      os: osx
+      osx_image: xcode10.2
+      addons:
+        homebrew:
+          packages:
+            - llvm
+            - catch2
+            - ninja
+          update: true
+      env:
+        - CPPFLAGS: "-I/usr/local/opt/llvm/include"
+        - LDFLAGS: "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+        - CPATH: /usr/local/opt/llvm/include
+        - LIBRARY_PATH: /usr/local/opt/llvm/lib
+        - LD_LIBRARY_PATH: /usr/local/opt/llvm/lib
+        - CC: /usr/local/opt/llvm/bin/clang
+        - CXX: /usr/local/opt/llvm/bin/clang++
+        - SQLITE_ORM_OMITS_CODECVT: ON
+
+    - name: "GCC-6"
+      os: osx
+      osx_image: xcode10.2
+      addons:
+        homebrew:
+          packages:
+            - gcc@6
+            - catch2
+            - ninja
+          update: true
+      env:
+        - CC: gcc-6
+        - CXX: g++-6
+
+before_install:
+  - |
+    if [[ ${TRAVIS_OS_NAME} == "osx" ]]; then
+      export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" # Use coreutils from homebrew.
+    fi
+
+install:
+  - |
+    # Catch2 test framework
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+      git clone --depth=1 --quiet https://github.com/catchorg/Catch2.git
+      cd Catch2
+      cmake -Bbuild -H. -DBUILD_TESTING=OFF
+      sudo env "PATH=$PATH" cmake --build ./build --target install
+    fi
+
+# scripts to run before build
+before_script:
+  - if [[ "$CXX" == *"clang"* ]]; then clang --version ; fi
+  - cd ${TRAVIS_BUILD_DIR}
+  - mkdir compile && cd compile
+  - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DSQLITE_ORM_OMITS_CODECVT="${SQLITE_ORM_OMITS_CODECVT:OFF}" ..
+
+# build examples, and run tests (ie make & make test)
+script:
+  - cmake --build . --config Debug -- -k 10
+  - ctest --verbose --output-on-failure -C Debug -j $(nproc)

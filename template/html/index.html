@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" type="text/css" href="https://www.layuicdn.com/layui/css/layui.css"/>
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        iframe {
+            border: none;
+        }
+
+        .v_h {
+            height: 100%;
+            width: 100%;
+        }
+
+        a {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app" class="v_h" v-cloak>
+    <title>{{ blog_info.title }}</title>
+
+
+    <ul class="layui-nav" style="height: 6%">
+        <li class="layui-nav-item" v-for="(bg, index) in group_info">
+            <a @click="change_big_group(index);">{{ bg.group_name }}</a>
+            <dl class="layui-nav-child" v-if="group_info.length !== 0">
+                <dd v-for="sg in bg.sub_group">
+                    <a @click="get_blog(sg.id);">{{sg.group_name}}</a>
+                </dd>
+            </dl>
+        </li>
+
+        <li class="layui-nav-item">
+            <a @click="all_blog();">所有博客</a>
+        </li>
+
+        <li class="layui-nav-item">
+            <img v-show="blogs.length" src="/img/list.png" width="20px"  @click="show_blog_list()">
+            <img v-show="current_blog" src="/img/comment.png" width="20px"  style="margin-left:30px;"
+                 @click="show_comment()">
+        </li>
+    </ul>
+
+    <div v-if="current_blog" style="height: 4%" class="layui-bg-black">
+        <div style="text-align: center; padding: 0; margin: 0">
+            <a href="/">
+                <img src="/img/home.png" title="返回首页" style="margin: 10px; border: thin black solid; border-radius: 3px;" height="20px;"  >
+            </a>
+            标题： {{current_blog.title}} &nbsp;&nbsp; 发布时间：{{current_blog.publish_time}}&nbsp;&nbsp; 阅读数量：
+            {{current_blog.watch_number}}&nbsp;&nbsp; 标签： <span v-for="lb in labels">
+                        {{lb.label_name}}&nbsp;
+                    </span>
+            <img style="margin: 10px; border: thin black solid; border-radius: 3px;" height="20px;" title="分享链接" id="share_btn"
+                 src="img/share.png">
+        </div>
+    </div>
+    <div style="height: 90%; overflow:hidden;">
+        <iframe @load="on_content_load_finished();" id="html_content" src="/html/show_blog.html"
+                class="v_h"></iframe>
+    </div>
+
+
+    <div hidden id="blog_list">
+        <table class="layui-table">
+            <colgroup>
+                <col>
+                <col>
+                <col>
+                <col>
+            </colgroup>
+            <thead>
+            <td>标题</td>
+            <td>发布时间</td>
+            <td>阅读数</td>
+            <td>分类</td>
+            <td>标签</td>
+            </thead>
+            <tbody>
+            <tr v-for="blog in blogs" @click="read_blog(blog);">
+                <td><img v-show="blog.top" height="20px;" src="/img/top.png">&nbsp;&nbsp;&nbsp;{{blog.title}}
+                </td>
+                <td>{{blog.publish_time}}</td>
+                <td>{{blog.watch_number}}</td>
+                <td>{{blog.big_group.group_name}} - {{blog.sub_group.group_name}}</td>
+                <td>
+                    <span v-for="lb in blog.labels">{{lb.label_name}}&nbsp;&nbsp;</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div hidden id="comment_list">
+        <div v-if="current_blog">
+            <div class="layui-form">
+                    <textarea placeholder="请输入评论" v-model="comment.content" class="layui-textarea">
+                    </textarea>
+                <div class="layui-form-item layui-inline">
+                    <label class="layui-form-label">姓名：</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" v-model="comment.name" placeholder="请输入姓名">
+                    </div>
+                </div>
+                <div class="layui-form-item layui-inline">
+                    <label class="layui-form-label">QQ：</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" v-model="comment.qq" placeholder="请输入QQ">
+                    </div>
+                </div>
+                <div class="layui-form-item layui-inline">
+                    <label class="layui-form-label">Email：</label>
+                    <div class="layui-input-block">
+                        <input type="text" class="layui-input" v-model="comment.email" placeholder="请输入Email">
+                    </div>
+                </div>
+                <div class="layui-form-item layui-inline">
+                    <button class="layui-btn layui-btn-normal" type="button" @click="publish_comment();">发表</button>
+                    QQ 和 Email不会显示在评论区，请放心填写
+                </div>
+            </div>
+            <div class="layui-collapse">
+                <div v-for="comment in current_blog.comment" class="layui-colla-item">
+                    <h2 class="layui-colla-title">
+                        发布者: {{comment.name}} 发布时间：{{comment.publish_time}}
+                    </h2>
+                    <div class="layui-colla-content layui-show">
+                        <p>
+                            {{comment.content}}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+    <script src="https://www.layuicdn.com/layui/layui.js" charset="utf-8"></script>
+    <script src="https://cdn.bootcss.com/showdown/1.9.0/showdown.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+    <script type="text/javascript" src="https://cdn.bootcss.com/vue/2.6.10/vue.min.js"></script>
+
+    <script src="https://cdn.bootcss.com/showdown/1.9.0/showdown.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
+    <script src="/js/tools.js"></script>
+    <script>
+        let app = new Vue({
+            el: "#app",
+            data: {
+                blog_info: {
+                    title: "",
+                    desc: ""
+                },
+                group_info: [],
+                big_group_index: 0,
+                sub_group_index: 0,
+                blogs: [],
+                current_blog: null,
+                labels: [],
+                converter: null,
+                type: << type >> ,
+                blog: << blog >> ,
+                comment: {
+                    name: "",
+                    content: "",
+                    qq: "",
+                    email: ""
+                }
+            },
+            methods: {
+                publish_comment: function() {
+                    let this_ = this;
+                    layui.use(["jquery", "layer"], function() {
+                        let $ = layui.jquery;
+                        let layer = layui.layer;
+                        layer.confirm("确认发表？您的评论在管理员审核后可显示", function() {
+                            $.ajax({
+                                url: "/api/comment",
+                                method: "POST",
+                                data: {
+                                    blog_id: this_.current_blog.id,
+                                    name: this_.comment.name,
+                                    content: this_.comment.content,
+                                    qq: this_.comment.qq,
+                                    email: this_.comment.email
+                                },
+                                success: function(res) {
+                                    if (res.code !== 0) {
+                                        layer.msg(res.msg, {
+                                            icon: 0
+                                        });
+                                    } else {
+                                        layer.msg("发表成功", {
+                                            icon: 1
+                                        });
+                                        this_.comment.content = "";
+                                    }
+                                }
+                            });
+                        });
+                    });
+                },
+                read_blog: function(blog) {
+                    let this_ = this;
+                    layui.use(["layer", "jquery", "element"], function() {
+                        let element = layui.element;
+                        let layer = layui.layer;
+                        let $ = layui.jquery;
+                        layer.closeAll();
+                        this_.current_blog = blog;
+                        $.ajax({
+                            url: "/api/blog_labels",
+                            method: "GET",
+                            data: {
+                                blog_id: blog.id,
+                            },
+                            success: function(res) {
+                                if (res.code !== 0) {
+                                    layer.msg(res.msg, {
+                                        icon: 0
+                                    });
+                                } else {
+                                    this_.labels = res.data;
+                                }
+                            }
+                        });
+                        $.ajax({
+                            url: "/api/blog_content",
+                            method: "GET",
+                            data: {
+                                blog_id: blog.id
+                            },
+                            success: function(res) {
+                                if (res.code !== 0) {
+                                    layer.msg(res.msg, {
+                                        icon: 0
+                                    });
+                                } else {
+                                    $(document.getElementById('html_content').contentWindow.document.body).html(this_.converter.makeHtml(res.data.content));
+                                }
+                            }
+                        });
+                        Vue.nextTick(
+                            () => {
+                                element.init();
+                            }
+                        );
+                    });
+                },
+                change_big_group: function(index) {
+                    this.big_group_index = index;
+                },
+
+        get_blog: function (id) {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                $.ajax({
+                    url: "/api/blog",
+                    method: "GET",
+                    data: {
+                        sub_group: id
+                    },
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            this_.blogs = res.data;
+                            this_.show_blog_list();
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+
+        all_blog: function () {
+            let this_ = this;
+            layui.use(["jquery", "layer"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                $.ajax({
+                    url: "/api/blog_all",
+                    method: "GET",
+                    success: function (res) {
+                        if (res.code !== 0) {
+                            layer.msg(res.msg, {
+                                icon: 0
+                            });
+                        } else {
+                            this_.blogs = res.data;
+                            this_.show_blog_list();
+                        }
+                    }
+                });
+            });
+        }
+    ,
+
+
+        show_blog_list: function () {
+            layui.use(["layer", "jquery"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                let this_ = this;
+
+                layer.open({
+                    type: 1,
+                    content: $("#blog_list"),
+                    area: ["80%", "100%"],
+                    // offset: "rt",
+                    closeBtn: 0,
+                    shade: 0.2,
+                    shadeClose: 1,
+                    anim: 4,
+                    title: "文章列表"
+                });
+            });
+        }
+    ,
+        show_comment: function () {
+            layui.use(["layer", "jquery"], function () {
+                let $ = layui.jquery;
+                let layer = layui.layer;
+                let this_ = this;
+
+                layer.open({
+                    type: 1,
+                    content: $("#comment_list"),
+                    area: ["80%", "100%"],
+                    closeBtn: 0,
+                    shade: 0.2,
+                    shadeClose: 1,
+                    anim: 1,
+                    title: "评论列表"
+                });
+            });
+        }
+    ,
+
+                init_group_info: function() {
+                    let this_ = this;
+                    layui.use(["jquery", "layer"], function() {
+                        let $ = layui.jquery;
+                        let layer = layui.layer;
+                        $.ajax({
+                            url: "/api/group_info",
+                            method: "GET",
+                            success: function(res) {
+                                if (res.code !== 0) {
+                                    layer.msg(res.msg, {
+                                        icon: 0
+                                    });
+                                } else {
+                                    this_.group_info = res.data;
+                                    Vue.nextTick(() => {
+                                        layui.use(["element"], function() {
+                                            let element = layui.element;
+                                            element.init();
+                                        });
+                                    });
+                                }
+                            }
+                        });
+                    });
+                },
+                init_blog_info: function() {
+                    let this_ = this;
+                    layui.use(["jquery", "layer"], function() {
+                        let $ = layui.jquery;
+                        let layer = layui.layer;
+                        $.ajax({
+                            url: "/api/blog_info",
+                            method: "GET",
+                            success: function(res) {
+                                if (res.code !== 0) {
+                                    layer.msg(res.msg, {
+                                        icon: 0
+                                    });
+                                } else {
+                                    this_.blog_info = res.data;
+                                    $(document.getElementById('html_content').contentWindow.document.body).html(res.data.desc);
+                                }
+                            }
+                        });
+                    });
+                },
+                on_content_load_finished: function() {
+                    if (this.type === 1) {
+                        this.read_blog(this.blog);
+                    }
+                }
+            },
+            mounted: function() {
+                let this_ = this;
+                this.converter = markdown_converter();
+                this.init_group_info();
+                this.init_blog_info();
+
+                let clip = new ClipboardJS("#share_btn", {
+                    text: function() {
+                        let data = window.location.protocol + "//" + window.location.host + "/blog?blog=" + this_.current_blog.id;
+                        layui.use(["layer"], function() {
+                            let layer = layui.layer;
+                            layer.msg(data + "<br>链接已复制", {
+                                icon: 1
+                            });
+                        });
+                        return data;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

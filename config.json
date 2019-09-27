@@ -1,0 +1,25 @@
+{
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "tmp_file_path": "/tmp",
+        "session_timeout": 1800,
+        "max_cache_count": 1024,
+        "max_cache_file_size": 1048576,
+        "debug": true
+    },
+    "blog": {
+        "static_path": "./static",
+        "template_path": "./template",
+        "db_path": "./db",
+        "uploaded_file_path": "./file"
+    },
+    "default_user": {
+        "name": "admin",
+        "password": "123456"
+    },
+    "blog_info": {
+        "title": "SkyFire个人博客",
+        "desc": "<div style=\"margin-top: 12%; margin-left: 20%;\">\n<h1>技术改变世界</h1>\n<h3>欢迎访问 skyfire 的个人博客</h3>\n<h4>QQ: 1513008876</h4>\n<h4>E-mail:<a href=\"mailto:skyfireitdiy@hotmail.com\">skyfireitdiy@hotmail.com</a></h4>\n<h4>QQ群：304811581</h4>\n<h4>github:<a href=\"https://github.com/skyfireitdiy\" target=\"_blank\">https://github.com/skyfireitdiy</a></h4>\n<h4>oschina:<a href=\"https://gitee.com/skyfireitdiy\" target=\"_blank\">https://gitee.com/skyfireitdiy</a></h4>\n</div>"
+    }
+}
