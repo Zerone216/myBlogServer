@@ -6,7 +6,7 @@
         "session_timeout": 1800,
         "max_cache_count": 1024,
         "max_cache_file_size": 1048576,
-        "debug": true
+        "debug": false
     },
     "blog": {
         "static_path": "./static",
@@ -19,7 +19,7 @@
         "password": "123456"
     },
     "blog_info": {
-        "title": "SkyFire个人博客",
-        "desc": "<div style=\"margin-top: 12%; margin-left: 20%;\">\n<h1>技术改变世界</h1>\n<h3>欢迎访问 skyfire 的个人博客</h3>\n<h4>QQ: 1513008876</h4>\n<h4>E-mail:<a href=\"mailto:skyfireitdiy@hotmail.com\">skyfireitdiy@hotmail.com</a></h4>\n<h4>QQ群：304811581</h4>\n<h4>github:<a href=\"https://github.com/skyfireitdiy\" target=\"_blank\">https://github.com/skyfireitdiy</a></h4>\n<h4>oschina:<a href=\"https://gitee.com/skyfireitdiy\" target=\"_blank\">https://gitee.com/skyfireitdiy</a></h4>\n</div>"
+        "title": "Zerone216个人博客",
+        "desc": "<div style=\"margin-top: 12%; margin-left: 20%;\">\n<h1>技术改变世界</h1>\n<h3>欢迎访问 zerone216 的个人博客</h3>\n<h4>QQ: 1002900237</h4>\n<h4>E-mail:<a href=\"mailto:zerone216@163.com\">zerone216@163.com</a></h4>\n<h4>QQ群：304811581</h4>\n<h4>github:<a href=\"https://github.com/zerone216\" target=\"_blank\">https://github.com/zerone216</a></h4>\n<h4>oschina:<a href=\"https://gitee.com/zerone216\" target=\"_blank\">https://gitee.com/zerone216</a></h4>\n</div>"
     }
 }
